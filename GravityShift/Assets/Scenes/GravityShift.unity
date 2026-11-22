@@ -271,6 +271,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GravityShift.GravityShiftGame
   spriteMaterial: {fileID: 2100000, guid: d1dfbd17ff46c124f9f9b6ebd42d7eec, type: 2}
   initialSeed: 
+  visualAssets: {fileID: 11400000, guid: 78d9d4489a6310a4aa49a05f6b273f37, type: 2}
+  audioAssets: {fileID: 11400000, guid: fbac0152a0c12d545911756930f7ae24, type: 2}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0

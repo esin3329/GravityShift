@@ -25,6 +25,8 @@ namespace GravityShift
         public GravityDirection Gravity;
         public GravityDirection? Override;
 
+        private bool hasLanded;
+
         public Body(BodyKind kind, Vector2 position, GravityDirection gravity, int facing = 1)
         {
             Kind = kind;
@@ -69,10 +71,21 @@ namespace GravityShift
             }
 
             bool wasGrounded = Grounded;
+            bool playerWasAirborne = !wasGrounded && Kind == BodyKind.Player;
+            // Ignore the short settle onto the spawn floor, not a real first fall.
+            bool playLand = playerWasAirborne && (hasLanded || Vector2.Dot(Velocity, down) >= 150 * Tuning.Pixel);
             Grounded = false;
             Slide(0, game, step);
             Slide(1, game, step);
-            if (!wasGrounded && Grounded) Squash = 0.1f;
+            if (!wasGrounded && Grounded)
+            {
+                Squash = 0.1f;
+                if (playerWasAirborne)
+                {
+                    hasLanded = true;
+                    if (playLand) game.PlaySfx(SfxKind.Land);
+                }
+            }
             Angle = Mathf.LerpAngle(Angle, (int)Gravity * -90, step * 14);
         }
 
@@ -199,6 +212,7 @@ namespace GravityShift
             {
                 Velocity[downAxis] = -down[downAxis] * Tuning.JumpSpeed;
                 jumpBuffer = coyote = 0;
+                game.PlaySfx(SfxKind.Jump);
             }
             if (!input.JumpHeld && Vector2.Dot(Velocity, down) < -Tuning.JumpCut && DashTime <= 0)
                 Velocity[downAxis] = -down[downAxis] * Tuning.JumpCut;
@@ -211,11 +225,13 @@ namespace GravityShift
                 DashTime = 0.14f;
                 dashCooldown = 0.55f;
                 Invulnerability = Mathf.Max(Invulnerability, DashTime);
+                game.PlaySfx(SfxKind.Dash);
             }
             if (input.Has(ActionButton.Attack) && attackCooldown <= 0)
             {
                 attackCooldown = 0.28f;
                 AttackTime = 0.12f;
+                game.PlaySfx(SfxKind.Swing);
                 game.Attack();
             }
             Move(game, step, DashTime <= 0);

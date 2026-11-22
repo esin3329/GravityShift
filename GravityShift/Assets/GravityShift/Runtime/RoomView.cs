@@ -10,12 +10,34 @@ namespace GravityShift
     {
         private readonly Transform root;
         private readonly Material material;
+        private readonly VisualAssets visualAssets;
         private readonly Sprite flat;
-        private readonly Sprite rounded;
-        private readonly Sprite triangle;
-        private readonly Sprite ring;
+        private readonly Sprite[] playerIdleFrames;
+        private readonly Sprite[] playerRunFrames;
+        private readonly Sprite playerRise;
+        private readonly Sprite playerFall;
+        private readonly Sprite[] playerDashFrames;
+        private readonly Sprite[] playerAttackFrames;
+        private readonly Sprite playerVisor;
+        private readonly Sprite[] walkerIdleFrames;
+        private readonly Sprite[] walkerWalkFrames;
+        private readonly Sprite[] anchorIdleFrames;
+        private readonly Sprite[] anchorWalkFrames;
+        private readonly Sprite[] inverterIdleFrames;
+        private readonly Sprite[] inverterWalkFrames;
+        private readonly Sprite[] puffFrames;
+        private readonly Sprite enemyPupil;
+        private readonly Sprite anchorRing;
+        private readonly Sprite stunStar;
+        private readonly Sprite crateSprite;
+        private readonly Sprite spikesSprite;
+        private readonly Sprite exitClosedSprite;
+        private readonly Sprite exitOpenSprite;
+        private readonly Sprite gravityBeamSprite;
+        private readonly Sprite gravityArrowSprite;
+        private readonly Sprite inverterWarningRingSprite;
+        private readonly Sprite telekinesisTetherSprite;
         private readonly List<SpriteRenderer> doors = new List<SpriteRenderer>();
-        private readonly List<SpriteRenderer> doorBars = new List<SpriteRenderer>();
         private readonly Dictionary<Body, Actor> actors = new Dictionary<Body, Actor>();
         private readonly List<Body> expired = new List<Body>();
         private readonly List<Effect> particles = new List<Effect>();
@@ -24,17 +46,17 @@ namespace GravityShift
         private readonly List<SpriteRenderer> zoneArrows = new List<SpriteRenderer>();
         private readonly SpriteRenderer pointer;
         private readonly SpriteRenderer tether;
-        private readonly SpriteRenderer slash;
         private readonly SpriteRenderer[] outline = new SpriteRenderer[4];
         private Transform stage;
         private Actor player;
         private int roomVersion;
+        private bool doorsOpen;
+        private bool pointerUsesEngineer = true;
 
         private sealed class Actor
         {
             public Transform Root;
             public Transform Shape;
-            public SpriteRenderer Outline;
             public SpriteRenderer Body;
             public SpriteRenderer Visor;
             public SpriteRenderer Mark;
@@ -52,52 +74,69 @@ namespace GravityShift
             public Vector2 Velocity;
             public Color Color;
             public float Life;
+            public float Age;
+            public float Duration;
         }
 
-        public RoomView(Material material)
+        public RoomView(Material material, VisualAssets visualAssets)
         {
+            if (material == null) throw new ArgumentNullException(nameof(material));
+            if (visualAssets == null) throw new ArgumentNullException(nameof(visualAssets));
+
             this.material = material;
+            this.visualAssets = visualAssets;
+            playerIdleFrames = visualAssets.PlayerIdleFrames;
+            playerRunFrames = visualAssets.PlayerRunFrames;
+            playerRise = visualAssets.PlayerRise;
+            playerFall = visualAssets.PlayerFall;
+            playerDashFrames = visualAssets.PlayerDashFrames;
+            playerAttackFrames = visualAssets.PlayerAttackFrames;
+            playerVisor = visualAssets.PlayerVisor;
+            walkerIdleFrames = visualAssets.WalkerIdleFrames;
+            walkerWalkFrames = visualAssets.WalkerWalkFrames;
+            anchorIdleFrames = visualAssets.AnchorIdleFrames;
+            anchorWalkFrames = visualAssets.AnchorWalkFrames;
+            inverterIdleFrames = visualAssets.InverterIdleFrames;
+            inverterWalkFrames = visualAssets.InverterWalkFrames;
+            puffFrames = visualAssets.PuffFrames;
+            enemyPupil = visualAssets.EnemyPupil;
+            anchorRing = visualAssets.AnchorRing;
+            stunStar = visualAssets.StunStar;
+            crateSprite = visualAssets.Crate;
+            spikesSprite = visualAssets.Spikes;
+            exitClosedSprite = visualAssets.ExitClosed;
+            exitOpenSprite = visualAssets.ExitOpen;
+            gravityBeamSprite = visualAssets.GravityBeam;
+            gravityArrowSprite = visualAssets.GravityArrow;
+            inverterWarningRingSprite = visualAssets.InverterWarningRing;
+            telekinesisTetherSprite = visualAssets.TelekinesisTether;
+
             root = new GameObject("Room Rendering").transform;
-            flat = MakeSprite((x, y) => true);
-            rounded = MakeSprite((x, y) =>
-            {
-                float dx = Mathf.Max(0, Mathf.Abs(x - 0.5f) - 0.25f);
-                float dy = Mathf.Max(0, Mathf.Abs(y - 0.5f) - 0.25f);
-                return dx * dx + dy * dy <= 0.25f * 0.25f;
-            });
-            triangle = MakeSprite((x, y) => Mathf.Abs(x - 0.5f) <= (1 - y) * 0.5f);
-            ring = MakeSprite((x, y) =>
-            {
-                float d = (new Vector2(x, y) - Vector2.one * 0.5f).sqrMagnitude;
-                return d > 0.38f * 0.38f && d < 0.49f * 0.49f;
-            });
-            pointer = Create("Pointer", root, 32);
-            tether = Create("Telekinesis Tether", root, 23);
-            slash = Create("Attack", root, 24, rounded);
-            for (int i = 0; i < outline.Length; i++) outline[i] = Create("Target Outline", root, 25);
+            flat = MakeFlatSprite();
+            pointer = Create("Pointer", root, 32, gravityArrowSprite);
+            Pose(pointer, Vector2.zero, Vector2.one * 0.65f, Color.white);
+            tether = Create("Telekinesis Tether", root, 23, telekinesisTetherSprite);
+            tether.drawMode = SpriteDrawMode.Tiled;
             for (int i = 0; i < Tuning.MaxZones; i++)
             {
-                zoneShapes.Add(Create("Gravity Field", root, 1));
-                zoneArrows.Add(Create("Gravity Direction", root, 3, triangle));
+                SpriteRenderer shape = Create("Gravity Field", root, 1, gravityBeamSprite);
+                shape.drawMode = SpriteDrawMode.Tiled;
+                zoneShapes.Add(shape);
+                zoneArrows.Add(Create("Gravity Direction", root, 3, gravityArrowSprite));
             }
+            for (int i = 0; i < outline.Length; i++) outline[i] = Create("Target Outline", root, 25);
         }
 
-        private static Sprite MakeSprite(Func<float, float, bool> visible)
+        private static Sprite MakeFlatSprite()
         {
-            const int side = 32;
-            var texture = new Texture2D(side, side, TextureFormat.RGBA32, false)
+            var texture = new Texture2D(1, 1, TextureFormat.RGBA32, false)
             {
                 filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Clamp
             };
-            var pixels = new Color32[side * side];
-            for (int y = 0; y < side; y++)
-                for (int x = 0; x < side; x++)
-                    pixels[y * side + x] = visible((x + 0.5f) / side, (y + 0.5f) / side)
-                        ? new Color32(255, 255, 255, 255) : new Color32(255, 255, 255, 0);
-            texture.SetPixels32(pixels);
+            texture.SetPixel(0, 0, Color.white);
             texture.Apply(false, true);
-            return Sprite.Create(texture, new Rect(0, 0, side, side), Vector2.one * 0.5f, side, 0, SpriteMeshType.FullRect);
+            return Sprite.Create(texture, new Rect(0, 0, 1, 1), Vector2.one * 0.5f, 1, 0, SpriteMeshType.FullRect);
         }
 
         private SpriteRenderer Create(string name, Transform parent, int layer, Sprite sprite = null)
@@ -110,10 +149,25 @@ namespace GravityShift
             return renderer;
         }
 
-        private static void Pose(SpriteRenderer sprite, Vector2 center, Vector2 size, Color color, float angle = 0)
+        private static void Pose(SpriteRenderer sprite, Vector2 center, Vector2 scale, Color color, float angle = 0)
         {
             sprite.transform.localPosition = center;
-            sprite.transform.localScale = new Vector3(size.x, size.y, 1);
+            sprite.transform.localScale = new Vector3(scale.x, scale.y, 1);
+            sprite.transform.localRotation = Quaternion.Euler(0, 0, angle);
+            sprite.color = color;
+        }
+
+        private static void PoseSprite(SpriteRenderer sprite, Vector2 center, Vector2 size, Color color, float angle = 0)
+        {
+            Vector3 sourceSize = sprite.sprite.bounds.size;
+            Pose(sprite, center, new Vector2(size.x / sourceSize.x, size.y / sourceSize.y), color, angle);
+        }
+
+        private static void PoseTiled(SpriteRenderer sprite, Vector2 center, Vector2 size, Color color, float angle = 0)
+        {
+            sprite.size = size;
+            sprite.transform.localPosition = center;
+            sprite.transform.localScale = Vector3.one;
             sprite.transform.localRotation = Quaternion.Euler(0, 0, angle);
             sprite.color = color;
         }
@@ -124,7 +178,6 @@ namespace GravityShift
             Pose(sprite, center, size, color);
             return sprite;
         }
-
         private void BuildRoom(GameState game)
         {
             if (stage != null)
@@ -136,25 +189,15 @@ namespace GravityShift
             particles.Clear();
             actors.Clear();
             doors.Clear();
-            doorBars.Clear();
+            doorsOpen = game.DoorOpen;
             stage = new GameObject("Current Room").transform;
             stage.SetParent(root, false);
-            var size = new Vector2(RoomMap.Width, RoomMap.Height);
-            int theme = game.Room.Zone;
-            Block("Background", stage, new Vector2(size.x, -size.y) * 0.5f, size, Palette.Backgrounds[theme], -10);
-            Color grid = Palette.Alpha(Palette.Accents[theme], 0.08f);
-            for (int col = 0; col < RoomMap.Width; col++)
-                Block("Grid", stage, new Vector2(col, -size.y / 2), new Vector2(Tuning.Pixel, size.y), grid, -9);
-            for (int row = 0; row < RoomMap.Height; row++)
-                Block("Grid", stage, new Vector2(size.x / 2, -row), new Vector2(size.x, Tuning.Pixel), grid, -9);
 
-            if (theme == 2)
-            {
-                var stars = new System.Random(120);
-                for (int i = 0; i < 65; i++)
-                    Block("Star", stage, new Vector2((float)stars.NextDouble() * size.x, -(float)stars.NextDouble() * size.y),
-                        Vector2.one * 0.035f, Palette.Alpha(Color.white, 0.45f), -8);
-            }
+            int theme = game.Room.Zone;
+            SpriteRenderer background = Create("Background", stage, -10, visualAssets.BackgroundFor(theme));
+            PoseSprite(background, new Vector2(RoomMap.Width * 0.5f, -RoomMap.Height * 0.5f),
+                new Vector2(RoomMap.Width, RoomMap.Height), Color.white);
+            VisualTileSet tiles = visualAssets.TilesFor(theme);
 
             for (int row = 0; row < RoomMap.Height; row++)
             {
@@ -163,13 +206,12 @@ namespace GravityShift
                     Vector2 center = RoomMap.CellCenter(col, row);
                     switch (game.Map.At(col, row))
                     {
-                        case '#': BuildWall(game.Map, col, row, center, theme); break;
+                        case '#': BuildWall(game.Map, col, row, center, tiles); break;
                         case '^': BuildSpikes(game.Map, col, row, center); break;
                         case 'D':
-                            doors.Add(Block("Exit", stage, center, Vector2.one * 0.88f, Color.white, 6));
-                            for (int i = -1; i <= 1; i++)
-                                doorBars.Add(Block("Exit Bars", stage, center + Vector2.right * i * 0.22f,
-                                    new Vector2(0.055f, 0.74f), Palette.Rgb(0x566174), 7));
+                            SpriteRenderer door = Create("Exit", stage, 6, game.DoorOpen ? exitOpenSprite : exitClosedSprite);
+                            PoseSprite(door, center, Vector2.one, Color.white);
+                            doors.Add(door);
                             break;
                     }
                 }
@@ -178,30 +220,48 @@ namespace GravityShift
             roomVersion = game.RoomVersion;
         }
 
-        private void BuildWall(RoomMap map, int col, int row, Vector2 center, int theme)
+        private void BuildWall(RoomMap map, int col, int row, Vector2 center, VisualTileSet tiles)
         {
-            Block("Wall", stage, center, Vector2.one, Palette.Walls[theme], 5);
-            Color edge = Palette.WallEdges[theme];
-            var horizontal = new Vector2(1, 3 * Tuning.Pixel);
-            var vertical = new Vector2(horizontal.y, 1);
-            const float offset = 0.453125f;
-            if (!map.IsSolid(col, row - 1)) Block("Edge", stage, center + Vector2.up * offset, horizontal, edge, 6);
-            if (!map.IsSolid(col, row + 1)) Block("Edge", stage, center + Vector2.down * offset, horizontal, edge, 6);
-            if (!map.IsSolid(col - 1, row)) Block("Edge", stage, center + Vector2.left * offset, vertical, edge, 6);
-            if (!map.IsSolid(col + 1, row)) Block("Edge", stage, center + Vector2.right * offset, vertical, edge, 6);
+            int exposedMask = 0;
+            if (!map.IsSolid(col, row - 1)) exposedMask |= 1;
+            if (!map.IsSolid(col + 1, row)) exposedMask |= 2;
+            if (!map.IsSolid(col, row + 1)) exposedMask |= 4;
+            if (!map.IsSolid(col - 1, row)) exposedMask |= 8;
+
+            SpriteRenderer wall = Create("Wall", stage, 5, tiles.Edge(exposedMask));
+            PoseSprite(wall, center, Vector2.one, Color.white);
+
+            if (map.IsSolid(col, row - 1) && map.IsSolid(col + 1, row) && !map.IsSolid(col + 1, row - 1))
+                AddInnerCorner(tiles, 0, center);
+            if (map.IsSolid(col + 1, row) && map.IsSolid(col, row + 1) && !map.IsSolid(col + 1, row + 1))
+                AddInnerCorner(tiles, 1, center);
+            if (map.IsSolid(col, row + 1) && map.IsSolid(col - 1, row) && !map.IsSolid(col - 1, row + 1))
+                AddInnerCorner(tiles, 2, center);
+            if (map.IsSolid(col - 1, row) && map.IsSolid(col, row - 1) && !map.IsSolid(col - 1, row - 1))
+                AddInnerCorner(tiles, 3, center);
+        }
+
+        private void AddInnerCorner(VisualTileSet tiles, int corner, Vector2 center)
+        {
+            SpriteRenderer overlay = Create("Wall Inner Corner", stage, 6, tiles.InnerCorner(corner));
+            PoseSprite(overlay, center, Vector2.one, Color.white);
         }
 
         private void BuildSpikes(RoomMap map, int col, int row, Vector2 center)
         {
             int angle = map.IsSolid(col, row + 1) ? 0 : map.IsSolid(col, row - 1) ? 180 :
                 map.IsSolid(col - 1, row) ? -90 : map.IsSolid(col + 1, row) ? 90 : 0;
-            var group = new GameObject("Spikes").transform;
-            group.SetParent(stage, false);
-            group.localPosition = center;
-            group.localRotation = Quaternion.Euler(0, 0, angle);
-            for (int i = -1; i <= 1; i++)
-                Pose(Create("Spike", group, 6, triangle), new Vector2(i / 3f, -0.15f), new Vector2(0.29f, 0.69f), Palette.Spikes);
-            Block("Spike Base", group, new Vector2(0, -0.44f), new Vector2(1, 0.12f), Palette.Rgb(0xa3243d), 6);
+            SpriteRenderer spikes = Create("Spikes", stage, 6, spikesSprite);
+            PoseSprite(spikes, center, Vector2.one, Color.white, angle);
+        }
+
+        private Sprite InitialSprite(Body body)
+        {
+            if (body.Kind == BodyKind.Player) return playerIdleFrames[0];
+            if (body.Kind == BodyKind.Walker) return walkerIdleFrames[0];
+            if (body.Kind == BodyKind.Anchor) return anchorIdleFrames[0];
+            if (body.Kind == BodyKind.Inverter) return inverterIdleFrames[0];
+            return crateSprite;
         }
 
         private Actor MakeActor(Body body)
@@ -210,16 +270,13 @@ namespace GravityShift
             actor.Root.SetParent(stage, false);
             actor.Shape = new GameObject("Body").transform;
             actor.Shape.SetParent(actor.Root, false);
-            bool round = body.Kind != BodyKind.Crate;
-            actor.Outline = Create("Outline", actor.Shape, 11, round ? rounded : flat);
-            actor.Body = Create("Silhouette", actor.Shape, 12, round ? rounded : flat);
-            actor.Mark = Create("Gravity Override", actor.Root, 17, triangle);
+            actor.Body = Create("Artwork", actor.Shape, 12, InitialSprite(body));
+            actor.Mark = Create("Gravity Override", actor.Root, 17, gravityArrowSprite);
+            Pose(actor.Mark, Vector2.zero, Vector2.one * 0.29f, Color.white);
 
             if (body.Kind == BodyKind.Player)
             {
-                actor.Visor = Block("Visor", actor.Shape, new Vector2(0.14f, 0.13f), new Vector2(0.30f, 0.16f), Palette.Psychic, 14);
-                for (int side = -1; side <= 1; side += 2)
-                    Block("Foot", actor.Shape, new Vector2(side * 0.14f, -0.40f), new Vector2(0.16f, 0.08f), Palette.Ink, 13);
+                actor.Visor = Create("Visor", actor.Shape, 14, playerVisor);
             }
             else if (body.IsEnemy)
             {
@@ -227,47 +284,83 @@ namespace GravityShift
                 int pupil = 0;
                 for (int side = -1; side <= 1; side += 2)
                 {
-                    Block("Eye", actor.Shape, new Vector2(side * 0.16f, 0.13f), new Vector2(0.20f, 0.18f), Color.white, 14);
-                    actor.Pupils[pupil++] = Block("Pupil", actor.Shape, new Vector2(side * 0.16f, 0.13f), new Vector2(0.08f, 0.10f), Palette.Ink, 15);
-                    Block("Foot", actor.Shape, new Vector2(side * 0.16f, -0.40f), new Vector2(0.16f, 0.08f), Palette.Ink, 13);
+                    SpriteRenderer eye = Create("Pupil", actor.Shape, 15, enemyPupil);
+                    PoseSprite(eye, new Vector2(side * 0.16f, 0.13f), Vector2.one * 0.18f, Color.white);
+                    actor.Pupils[pupil++] = eye;
                 }
                 if (body.Kind == BodyKind.Anchor)
-                    actor.Ring = Create("Anchor Ring", actor.Shape, 16, ring);
-                actor.StunMark = Create("Stun", actor.Shape, 18, triangle);
+                {
+                    actor.Ring = Create("Anchor Ring", actor.Shape, 16, anchorRing);
+                    PoseSprite(actor.Ring, Vector2.zero, Vector2.one * 0.62f, Color.white);
+                }
+                actor.StunMark = Create("Stun", actor.Shape, 18, stunStar);
+                PoseSprite(actor.StunMark, new Vector2(0, 0.78f), Vector2.one * 0.24f, Color.white);
                 actor.StunMark.enabled = false;
                 if (body.Kind == BodyKind.Inverter)
                 {
-                    actor.Pulse = Create("Inverter Pulse", actor.Root, 8, ring);
+                    actor.Pulse = Create("Inverter Pulse", actor.Root, 8, inverterWarningRingSprite);
+                    PoseSprite(actor.Pulse, Vector2.zero, Vector2.one * (Tuning.InverterRadius * 2), Color.white);
                     actor.Pulse.enabled = false;
                 }
                 actor.Health = new SpriteRenderer[body.MaxHealth];
                 for (int i = 0; i < actor.Health.Length; i++)
-                    actor.Health[i] = Block("Health", actor.Root, new Vector2((i - (body.MaxHealth - 1) / 2f) * 0.18f, 0.56f),
+                    actor.Health[i] = Block("Health", actor.Root, new Vector2((i - (body.MaxHealth - 1) / 2f) * 0.18f, 0.82f),
                         new Vector2(0.12f, 0.08f), Palette.Spikes, 16);
-            }
-            else
-            {
-                var wood = Palette.Rgb(0x5e3d1a);
-                for (int direction = -1; direction <= 1; direction += 2)
-                    Pose(Create("Brace", actor.Shape, 13), Vector2.zero, new Vector2(0.94f, 0.055f), wood, 45 * direction);
             }
 
             return actor;
         }
 
-        private static void DrawActor(Actor actor, Body body, GameState game)
+        private static int FrameIndex(Sprite[] frames, float time, float framesPerSecond) =>
+            Mathf.FloorToInt(time * framesPerSecond) % frames.Length;
+
+        private Sprite AnimatedSprite(Body body, GameState game)
+        {
+            float time = game.Time;
+            if (body.Kind == BodyKind.Player)
+            {
+                PlayerBody playerBody = (PlayerBody)body;
+                if (playerBody.DashTime > 0f) return playerDashFrames[FrameIndex(playerDashFrames, time, 14f)];
+                if (playerBody.AttackTime > 0f) return playerAttackFrames[FrameIndex(playerAttackFrames, time, 18f)];
+                if (!body.Grounded)
+                    return Vector2.Dot(body.Velocity, body.Gravity.Vector()) < 0f ? playerRise : playerFall;
+                int axis = body.VerticalGravity ? 0 : 1;
+                return Mathf.Abs(body.Velocity[axis]) > 0.15f
+                    ? playerRunFrames[FrameIndex(playerRunFrames, time, 12f)]
+                    : playerIdleFrames[FrameIndex(playerIdleFrames, time, 2.5f)];
+            }
+
+            int movementAxis = body.VerticalGravity ? 0 : 1;
+            bool walking = body.Grounded && !body.Held && body.Stun <= 0f && Mathf.Abs(body.Velocity[movementAxis]) > 0.15f;
+            if (body.Kind == BodyKind.Walker)
+                return walking ? walkerWalkFrames[FrameIndex(walkerWalkFrames, time, 8f)] : walkerIdleFrames[FrameIndex(walkerIdleFrames, time, 2f)];
+            if (body.Kind == BodyKind.Anchor)
+                return walking ? anchorWalkFrames[FrameIndex(anchorWalkFrames, time, 8f)] : anchorIdleFrames[FrameIndex(anchorIdleFrames, time, 2f)];
+            if (body.Kind == BodyKind.Inverter)
+                return walking ? inverterWalkFrames[FrameIndex(inverterWalkFrames, time, 8f)] : inverterIdleFrames[FrameIndex(inverterIdleFrames, time, 2f)];
+            return crateSprite;
+        }
+
+        private static float ArrowAngle(GravityDirection direction) => -(int)direction * 90f;
+
+        private void DrawActor(Actor actor, Body body, GameState game)
         {
             actor.Root.localPosition = body.Position;
             actor.Root.gameObject.SetActive(body.Alive && (!(body is PlayerBody p) || p.Blink <= 0 || (int)(game.Time * 20) % 2 == 0));
             float squash = 1f - 0.15f * Mathf.Clamp01(body.Squash / 0.1f);
             actor.Shape.localScale = new Vector3(1f, squash, 1f);
             actor.Shape.localRotation = Quaternion.Euler(0, 0, body.Kind == BodyKind.Crate ? 0 : body.Angle);
-            Color color = body.Kind == BodyKind.Player ? Palette.Ash : body.Kind == BodyKind.Walker ? Palette.Walker :
-                body.Kind == BodyKind.Anchor ? Palette.Anchor : body.Kind == BodyKind.Inverter ? Palette.Inverter : Palette.Rgb(0x9c6a35);
+
+            int facing = body.Gravity == GravityDirection.Down || body.Gravity == GravityDirection.Right ? body.Facing : -body.Facing;
+            Sprite frame = AnimatedSprite(body, game);
+            if (actor.Body.sprite != frame) actor.Body.sprite = frame;
+            actor.Body.flipX = facing < 0;
+            Color color = body.Kind == BodyKind.Player ? Color.white : body.Kind == BodyKind.Walker ? Palette.Walker :
+                body.Kind == BodyKind.Anchor ? Palette.Anchor : body.Kind == BodyKind.Inverter ? Palette.Inverter : Color.white;
             if (body.Held) color = Color.Lerp(color, Palette.Psychic, 0.65f);
             if (body is PlayerBody dashing && dashing.DashTime > 0f) color = Color.Lerp(Palette.Ash, Palette.Dash, 0.65f);
-            Pose(actor.Outline, Vector2.zero, body.Size + Vector2.one * 0.08f, Palette.Ink);
-            Pose(actor.Body, Vector2.zero, body.Size, body.Flash > 0 ? Color.white : color);
+            actor.Body.color = body.Flash > 0 ? Color.white : color;
+
             if (actor.Pupils != null)
             {
                 Vector2 toPlayer = game.Player.Position - body.Position;
@@ -280,13 +373,11 @@ namespace GravityShift
                     side += 2;
                 }
             }
-            if (actor.Ring != null)
-                Pose(actor.Ring, Vector2.zero, Vector2.one * 0.62f, Color.Lerp(Palette.Anchor, Color.white, 0.55f));
             if (actor.StunMark != null)
             {
                 actor.StunMark.enabled = body.Stun > 0f;
                 if (actor.StunMark.enabled)
-                    Pose(actor.StunMark, new Vector2(Mathf.Sin(game.Time * 12f) * 0.08f, 0.58f), Vector2.one * 0.2f, Palette.Sparks);
+                    actor.StunMark.transform.localPosition = new Vector2(Mathf.Sin(game.Time * 12f) * 0.08f, 0.78f);
             }
             if (actor.Pulse != null)
             {
@@ -294,19 +385,17 @@ namespace GravityShift
                 if (actor.Pulse.enabled)
                 {
                     float charge = 1f - Mathf.Clamp01(body.Pulse / Tuning.InverterTelegraph);
-                    const float scale = Tuning.InverterRadius * 2f / 0.88f;
-                    Pose(actor.Pulse, Vector2.zero, Vector2.one * scale, Palette.Alpha(Palette.Inverter, 0.25f + 0.55f * charge));
+                    actor.Pulse.color = Palette.Alpha(Palette.Inverter, 0.25f + 0.55f * charge);
                 }
             }
             actor.Mark.enabled = body.Override.HasValue;
             if (actor.Mark.enabled)
-                Pose(actor.Mark, body.Gravity.Vector() * 0.65f, Vector2.one * 0.29f, Palette.Psychic, 180 - (int)body.Gravity * 90);
+                Pose(actor.Mark, body.Gravity.Vector() * 0.65f, Vector2.one * 0.29f, Palette.Psychic, ArrowAngle(body.Gravity));
 
             if (actor.Visor != null)
             {
-                int facing = body.Gravity == GravityDirection.Down || body.Gravity == GravityDirection.Right ? body.Facing : -body.Facing;
-                Pose(actor.Visor, new Vector2(facing * 0.14f, 0.13f), new Vector2(0.30f, 0.16f),
-                    game.UsesEngineer ? Palette.Engineer : Palette.Psychic);
+                actor.Visor.flipX = actor.Body.flipX;
+                actor.Visor.color = game.UsesEngineer ? Palette.Engineer : Palette.Psychic;
             }
             if (actor.Health != null)
                 for (int i = 0; i < actor.Health.Length; i++)
@@ -317,9 +406,22 @@ namespace GravityShift
         {
             if (roomVersion != game.RoomVersion) BuildRoom(game);
             root.localPosition = Random.insideUnitCircle * (game.Shake * Tuning.Pixel * 0.5f);
-            for (int i = 0; i < doors.Count; i++)
-                doors[i].color = game.DoorOpen ? Palette.Alpha(Palette.Accents[game.Room.Zone], 0.7f + 0.25f * Mathf.Sin(game.Time * 5)) : Palette.Rgb(0x1b1f27);
-            foreach (var bar in doorBars) bar.enabled = !game.DoorOpen;
+            if (doorsOpen != game.DoorOpen)
+            {
+                doorsOpen = game.DoorOpen;
+                Sprite sprite = doorsOpen ? exitOpenSprite : exitClosedSprite;
+                for (int i = 0; i < doors.Count; i++)
+                {
+                    doors[i].sprite = sprite;
+                    doors[i].color = Color.white;
+                }
+            }
+            if (doorsOpen)
+            {
+                Color doorColor = Color.white;
+                doorColor.a = 0.7f + 0.25f * Mathf.Sin(game.Time * 5f);
+                for (int i = 0; i < doors.Count; i++) doors[i].color = doorColor;
+            }
 
             DrawActor(player, game.Player, game);
             expired.Clear();
@@ -340,12 +442,6 @@ namespace GravityShift
                 DrawActor(actor, body, game);
             }
 
-            slash.enabled = game.Player.AttackTime > 0 && game.Player.Alive;
-            if (slash.enabled)
-            {
-                Color slashColor = game.UsesEngineer ? Palette.Engineer : Palette.Psychic;
-                Pose(slash, game.Player.AttackBounds.center, game.Player.AttackBounds.size, Palette.Alpha(slashColor, 0.4f));
-            }
             DrawAbilities(game, input);
             DrawParticles(delta);
         }
@@ -358,22 +454,28 @@ namespace GravityShift
                 zoneShapes[i].enabled = zoneArrows[i].enabled = visible;
                 if (!visible) continue;
                 var zone = game.Engineer.Zones[i];
-                Pose(zoneShapes[i], zone.Bounds.center, zone.Bounds.size, Palette.Alpha(Palette.Engineer, 0.22f));
-                Pose(zoneArrows[i], zone.Bounds.center, Vector2.one * 0.7f, Palette.Engineer, 180 - (int)zone.Direction * 90);
+                PoseTiled(zoneShapes[i], zone.Bounds.center, zone.Bounds.size, Color.white);
+                Pose(zoneArrows[i], zone.Bounds.center, Vector2.one * 0.7f, Palette.Engineer, ArrowAngle(zone.Direction));
+            }
+
+            bool engineer = game.UsesEngineer;
+            if (pointerUsesEngineer != engineer)
+            {
+                pointerUsesEngineer = engineer;
+                pointer.sprite = engineer ? gravityArrowSprite : anchorRing;
             }
 
             pointer.enabled = input.PointerInRoom;
             Rect? bounds = null;
-            Color color = game.UsesEngineer ? Palette.Engineer : Palette.Psychic;
-            if (game.UsesEngineer)
+            Color color = engineer ? Palette.Engineer : Palette.Psychic;
+            if (engineer)
             {
-                pointer.sprite = triangle;
                 if (input.PointerInRoom) bounds = game.Engineer.Preview(game.Map, input.Pointer);
-                Pose(pointer, input.Pointer, Vector2.one * 0.65f, bounds.HasValue ? color : Color.gray, 180 - (int)game.Engineer.Direction * 90);
+                Pose(pointer, input.Pointer, Vector2.one * 0.65f, bounds.HasValue ? color : Color.gray,
+                    ArrowAngle(game.Engineer.Direction));
             }
             else
             {
-                pointer.sprite = ring;
                 var target = input.PointerInRoom ? game.PickBody(input.Pointer) : null;
                 if (target != null && target != game.Psychic.Grabbed)
                 {
@@ -383,7 +485,7 @@ namespace GravityShift
                     bounds = rect;
                     if (!target.Manipulable) color = Color.gray;
                 }
-                Pose(pointer, input.Pointer, Vector2.one * 0.55f, color);
+                Pose(pointer, input.Pointer, Vector2.one * 1.1f, Color.white);
             }
 
             foreach (var edge in outline) edge.enabled = bounds.HasValue;
@@ -397,13 +499,13 @@ namespace GravityShift
                 Pose(outline[3], new Vector2(box.center.x, box.yMax), new Vector2(box.width, width), color);
             }
 
-            var grabbed = game.UsesEngineer ? null : game.Psychic.Grabbed;
+            var grabbed = engineer ? null : game.Psychic.Grabbed;
             tether.enabled = grabbed != null && grabbed.Alive && game.Player.Alive;
             if (tether.enabled)
             {
                 Vector2 offset = grabbed.Position - game.Player.Position;
-                Pose(tether, game.Player.Position + offset * 0.5f, new Vector2(offset.magnitude, 0.06f),
-                    Palette.Alpha(Palette.Psychic, 0.7f), Mathf.Atan2(offset.y, offset.x) * Mathf.Rad2Deg);
+                PoseTiled(tether, game.Player.Position + offset * 0.5f, new Vector2(offset.magnitude, 0.25f),
+                    Color.white, Mathf.Atan2(offset.y, offset.x) * Mathf.Rad2Deg);
             }
         }
 
@@ -411,16 +513,19 @@ namespace GravityShift
         {
             for (int i = 0; i < count; i++)
             {
-                var sprite = particlePool.Count > 0 ? particlePool.Pop() : Create("Particle", root, 27);
+                SpriteRenderer sprite = particlePool.Count > 0 ? particlePool.Pop() : Create("Particle", root, 27, puffFrames[0]);
+                sprite.sprite = puffFrames[0];
                 sprite.enabled = true;
-                Pose(sprite, center, Vector2.one * Random.Range(0.06f, 0.15f), color);
+                PoseSprite(sprite, center, Vector2.one * Random.Range(0.18f, 0.30f), color);
+                float duration = Random.Range(0.3f, 0.7f);
                 particles.Add(new Effect
                 {
                     Renderer = sprite,
                     Position = center,
                     Velocity = Random.insideUnitCircle * speed,
                     Color = color,
-                    Life = Random.Range(0.3f, 0.7f)
+                    Life = duration,
+                    Duration = duration
                 });
             }
         }
@@ -431,6 +536,7 @@ namespace GravityShift
             {
                 var effect = particles[i];
                 effect.Life -= delta;
+                effect.Age += delta;
                 if (effect.Life <= 0)
                 {
                     Recycle(effect.Renderer);
@@ -439,8 +545,10 @@ namespace GravityShift
                 }
                 effect.Position += effect.Velocity * delta;
                 effect.Velocity *= Mathf.Pow(0.92f, delta * 60);
+                int frame = Mathf.Min((int)(effect.Age / effect.Duration * puffFrames.Length), puffFrames.Length - 1);
+                effect.Renderer.sprite = puffFrames[frame];
                 effect.Renderer.transform.localPosition = effect.Position;
-                effect.Renderer.color = Palette.Alpha(effect.Color, Mathf.Clamp01(effect.Life * 2.5f));
+                effect.Renderer.color = effect.Color;
                 particles[i] = effect;
             }
         }
@@ -454,10 +562,10 @@ namespace GravityShift
         public void Dispose()
         {
             if (root != null) Object.Destroy(root.gameObject);
-            foreach (Sprite sprite in new[] { flat, rounded, triangle, ring })
+            if (flat != null)
             {
-                Object.Destroy(sprite.texture);
-                Object.Destroy(sprite);
+                Object.Destroy(flat.texture);
+                Object.Destroy(flat);
             }
         }
     }

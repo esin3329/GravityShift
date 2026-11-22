@@ -36,7 +36,8 @@
 | `GravityShiftGame.cs`, `Controls.cs` | 60Hz 게임 루프, Unity Input System, 카메라 |
 | `GameState.cs`, `Body.cs`, `Abilities.cs` | 방 진행, 중력·타일 충돌, 전투와 능력 |
 | `RoomMap.cs`, `ZoneDefinition.cs`, `RoomGenerator.cs` | 타일 좌표, 소개 방, 시드 기반 방 생성 |
-| `RoomView.cs`, `HudView.cs`, `Sfx.cs` | URP 2D 스프라이트, uGUI HUD, 합성 효과음 |
+| `RoomView.cs`, `HudView.cs`, `Sfx.cs` | URP 2D 스프라이트, uGUI HUD, 구역 음악과 효과음 |
+| `VisualAssets.cs`, `AudioAssets.cs` | 씬에서 참조하는 그래픽·폰트·오디오 카탈로그 (`Assets/GravityShift/Content`) |
 
 플레이하는 버전은 Unity다. 소스는 `GravityShift/Assets/GravityShift/Runtime`에 있다. 월드 단위는 타일 한 칸이며, 중력과 접촉 판정은 엔티티별로 적용한다. 방 배치는 Mulberry32로 시드를 재현한다. `src/`의 웹 프로토타입은 이전 버전 그대로 두며, 이 문서의 반전자·조각·일시정지와는 맞춰져 있지 않다.
 

@@ -1,0 +1,161 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 888b3f2108121a941bfd67970ed1354b, type: 3}
+  m_Name: VisualAssets
+  m_EditorClassIdentifier: Assembly-CSharp::GravityShift.VisualAssets
+  playerIdleFrames:
+  - {fileID: 21300000, guid: d4b67e22f765f8441bcf15b63bcfb34f, type: 3}
+  - {fileID: 21300000, guid: 23e950e58cc84a44688366c12561f935, type: 3}
+  - {fileID: 21300000, guid: a0bedeaea89e02745a98a042c8c1a67e, type: 3}
+  - {fileID: 21300000, guid: f4dd457f0b04a674c9e1d0a27d177792, type: 3}
+  playerRunFrames:
+  - {fileID: 21300000, guid: cfc3153f26359944dbb0838b0a50d486, type: 3}
+  - {fileID: 21300000, guid: 5d83bf891d714d34cad773899d23a173, type: 3}
+  - {fileID: 21300000, guid: 6017ad3dbd3aea340ad1d4c2e061a3ac, type: 3}
+  - {fileID: 21300000, guid: fea085e3b85a5c4448c4226e733b531c, type: 3}
+  - {fileID: 21300000, guid: 9bb9990c264387c499cf12f3b4851cfd, type: 3}
+  - {fileID: 21300000, guid: bd1febb3ae1cc6f42ba4fecefdabd5f7, type: 3}
+  playerRise: {fileID: 21300000, guid: 369f4cad878a7024f8a648129bda4c10, type: 3}
+  playerFall: {fileID: 21300000, guid: ce81238d9e8e5c44eb0a26790a217e97, type: 3}
+  playerDashFrames:
+  - {fileID: 21300000, guid: 76880cfc87cd4a8489bd974615ae35fe, type: 3}
+  - {fileID: 21300000, guid: 76bce859b0eb68547adb26bc9d754bf0, type: 3}
+  playerAttackFrames:
+  - {fileID: 21300000, guid: 0ac0a8c777ce4d042bc56c67e9726b1d, type: 3}
+  - {fileID: 21300000, guid: 4175f551de03cf0448eea90d44782a69, type: 3}
+  - {fileID: 21300000, guid: d6777fb09bdff0844804eb2940987997, type: 3}
+  - {fileID: 21300000, guid: cd363a99b953f064c98564cbb5f494cb, type: 3}
+  playerVisor: {fileID: 21300000, guid: 4562b29e862cae44fadf8e9c09d2ae58, type: 3}
+  walkerIdleFrames:
+  - {fileID: 21300000, guid: 575cdd42e401f0146b8fe0266db03c02, type: 3}
+  - {fileID: 21300000, guid: 629dbe815b62d78488d02310bb0280dd, type: 3}
+  walkerWalkFrames:
+  - {fileID: 21300000, guid: 809f79ef2fefce54a96563435cf9054c, type: 3}
+  - {fileID: 21300000, guid: b9d28002072143d46ba45bf6785fba78, type: 3}
+  - {fileID: 21300000, guid: ea004db517f588d4a8d89ee3cec57784, type: 3}
+  - {fileID: 21300000, guid: d2b803673486caa4bbfac052283d46a3, type: 3}
+  - {fileID: 21300000, guid: c232fa9a3cbf65549b8ef0a5a31ccd4c, type: 3}
+  - {fileID: 21300000, guid: 4753c19d803fe9e4398c1ff386dfc831, type: 3}
+  anchorIdleFrames:
+  - {fileID: 21300000, guid: 408718714a33c324d8790d1d4120e3a4, type: 3}
+  - {fileID: 21300000, guid: 52aa9c3a096bcca45bb8d779af5e60cd, type: 3}
+  anchorWalkFrames:
+  - {fileID: 21300000, guid: 36386a4a40f63834ca233e49598d7b45, type: 3}
+  - {fileID: 21300000, guid: 2a5e8157adf2915418875890a0c4f2d0, type: 3}
+  - {fileID: 21300000, guid: e046e222834335f429649f9576869d01, type: 3}
+  - {fileID: 21300000, guid: b163e6a057ce3874abef1be3bfa9a399, type: 3}
+  - {fileID: 21300000, guid: 8c7b67087a95342499c2e70b02bdd056, type: 3}
+  - {fileID: 21300000, guid: a83e6c3030b9cd84bb6a5838ec096d78, type: 3}
+  inverterIdleFrames:
+  - {fileID: 21300000, guid: d8c7597b231b3624f9292478429ba816, type: 3}
+  - {fileID: 21300000, guid: 22e8e5b228a314447a300807af429c46, type: 3}
+  inverterWalkFrames:
+  - {fileID: 21300000, guid: f1a1055550784ea49a752a12ac2209bd, type: 3}
+  - {fileID: 21300000, guid: d821c1800439d1943b8143c4367d5d1b, type: 3}
+  - {fileID: 21300000, guid: 91299d48ffaa03446b1ea1f1e81a044f, type: 3}
+  - {fileID: 21300000, guid: f3b79894bf19d354e8d81be4197aba42, type: 3}
+  - {fileID: 21300000, guid: ef992adacbef580458583e45a120ca07, type: 3}
+  - {fileID: 21300000, guid: be7c58fb417d9714ba3ce7f9b78b7236, type: 3}
+  enemyPupil: {fileID: 21300000, guid: 8596b46da8bbb1f419c55cedfee1ba7a, type: 3}
+  anchorRing: {fileID: 21300000, guid: b7b9c9643fbb2024c93071582c51407b, type: 3}
+  stunStar: {fileID: 21300000, guid: f42f9fa2acd1de148a1d1151a73a9ed7, type: 3}
+  researchWingBackground: {fileID: 21300000, guid: e2857138328839a4b8fd0678a5a8d2ab, type: 3}
+  magicTowerBackground: {fileID: 21300000, guid: 3efd67681ce79c049a75961f54df88d8, type: 3}
+  orbitalStationBackground: {fileID: 21300000, guid: 1108d86ccc444f24bae7e91af08b15f1, type: 3}
+  researchWingTiles:
+    edgeMasks:
+    - {fileID: 21300000, guid: 15fd7c6136a300049908506f3338dfd2, type: 3}
+    - {fileID: 21300000, guid: f855f05d42ebd0e419091bdfdb21f6ea, type: 3}
+    - {fileID: 21300000, guid: 6e380266ce3bc394cb41659f38d52b4c, type: 3}
+    - {fileID: 21300000, guid: 80882af073a069b4687c3e7c0345c8a1, type: 3}
+    - {fileID: 21300000, guid: ce72e5cca736f394bab44d6a6270089c, type: 3}
+    - {fileID: 21300000, guid: bd9491491d205df4c916cb3dacb054ca, type: 3}
+    - {fileID: 21300000, guid: a4ae30244b58fec4b900015739746beb, type: 3}
+    - {fileID: 21300000, guid: f080c1b48fe37004781e04f9a61cb008, type: 3}
+    - {fileID: 21300000, guid: d7e5a3e9b1ba857488c37d7cea07395d, type: 3}
+    - {fileID: 21300000, guid: ad13e67431fba9f41832698092702952, type: 3}
+    - {fileID: 21300000, guid: 9346a1430ceb18e46a4f2ea64583ebb4, type: 3}
+    - {fileID: 21300000, guid: 9cf936f21c50f654b8dc0f266d32309e, type: 3}
+    - {fileID: 21300000, guid: 92a7956624ad6b1458218656433272f5, type: 3}
+    - {fileID: 21300000, guid: d1bc3ebd8e9d7b84ab7a9311e0967042, type: 3}
+    - {fileID: 21300000, guid: 0cee2b8742498c34799ca70b20abf154, type: 3}
+    - {fileID: 21300000, guid: 7b9f670241d0cec46a98d2768b235973, type: 3}
+    innerCorners:
+    - {fileID: 21300000, guid: ca3c668fb50fa88468f93561005ec4b7, type: 3}
+    - {fileID: 21300000, guid: 76de9dc6cd585c24692a1d353e98fc3b, type: 3}
+    - {fileID: 21300000, guid: f2d730da79e7af74393add0d37dba9e5, type: 3}
+    - {fileID: 21300000, guid: c614890e04c60df4aa301acdd8e60760, type: 3}
+  magicTowerTiles:
+    edgeMasks:
+    - {fileID: 21300000, guid: 2a0ccea92d45e63439e660ea32fcd9d0, type: 3}
+    - {fileID: 21300000, guid: 920ee493d6b3d484dbbddedad0ea0ac2, type: 3}
+    - {fileID: 21300000, guid: dd61cd57bbbd722488a6d62a8ad10ff5, type: 3}
+    - {fileID: 21300000, guid: 2a432090404cf6f4a865aa46fc0e759d, type: 3}
+    - {fileID: 21300000, guid: 83fd4155b1b84b6418dfa7a0bf9fe949, type: 3}
+    - {fileID: 21300000, guid: 7bbd4efae8ec7944183682b813e4c442, type: 3}
+    - {fileID: 21300000, guid: 4424918b5ef29024c9ffcdd41aa6cd67, type: 3}
+    - {fileID: 21300000, guid: 134227577a7b6694f9ec34909bc8a977, type: 3}
+    - {fileID: 21300000, guid: b318816554e72854b9250bf2c9fab076, type: 3}
+    - {fileID: 21300000, guid: 56729383365ac754cbc36b18a87eb5d4, type: 3}
+    - {fileID: 21300000, guid: 41b4d03bb0c2edd4fa132e8f37f614cc, type: 3}
+    - {fileID: 21300000, guid: 50577990d29430741be7d1a7374f4fc3, type: 3}
+    - {fileID: 21300000, guid: 345677b72876263429a3c80131caeeac, type: 3}
+    - {fileID: 21300000, guid: 390967d95a555184aa8b4b443de24582, type: 3}
+    - {fileID: 21300000, guid: cf2282a746776ee48aa8150433ef4d4e, type: 3}
+    - {fileID: 21300000, guid: b97e1e9431259d3489cceb4e473dbdf9, type: 3}
+    innerCorners:
+    - {fileID: 21300000, guid: 332bd0cec49dafb4898fe4b9a1accc7f, type: 3}
+    - {fileID: 21300000, guid: e19d446c66d6a7447bbcbf6b4b032fae, type: 3}
+    - {fileID: 21300000, guid: 1d54e816328fc6846b5e45c2e1f7e8e7, type: 3}
+    - {fileID: 21300000, guid: a557b45e173e32146994d59b06ffa19e, type: 3}
+  orbitalStationTiles:
+    edgeMasks:
+    - {fileID: 21300000, guid: 491cd1c6446cd144abd31df93474d0bb, type: 3}
+    - {fileID: 21300000, guid: 0a86d7de885bf0f49b4b43b06909a18f, type: 3}
+    - {fileID: 21300000, guid: ed3be77dd12a3964e9093f2b2aebb52e, type: 3}
+    - {fileID: 21300000, guid: 5957ea4a2e1bc9345af08f1620846761, type: 3}
+    - {fileID: 21300000, guid: 0bdb6ef071808834a8bad8050c7f3696, type: 3}
+    - {fileID: 21300000, guid: 4dc3178999b4b1a498482872634e94da, type: 3}
+    - {fileID: 21300000, guid: 39b88ce73384d8e458611144626a0a03, type: 3}
+    - {fileID: 21300000, guid: f1e29ae8e66ce4847813910986454b50, type: 3}
+    - {fileID: 21300000, guid: 5dfc3fa4933aaf74c91a20b15ac1dcc2, type: 3}
+    - {fileID: 21300000, guid: b5e731270a69dad43a930e23d4031a1e, type: 3}
+    - {fileID: 21300000, guid: d20188ef1033afa48847b12ce22dd720, type: 3}
+    - {fileID: 21300000, guid: 2b4530ed28590bb4fb47c416fa80235c, type: 3}
+    - {fileID: 21300000, guid: 9c6729f1b9cba3445945aa50d611ce16, type: 3}
+    - {fileID: 21300000, guid: 8975ff2c54cc3284ea536b77a6337641, type: 3}
+    - {fileID: 21300000, guid: 908e24bc522468d4a8b3f6584f5f7d40, type: 3}
+    - {fileID: 21300000, guid: 979b6e099d4918741bf6c334d5dfb9d7, type: 3}
+    innerCorners:
+    - {fileID: 21300000, guid: d1fc44c3e05d0dd4694e5ad9177e58ad, type: 3}
+    - {fileID: 21300000, guid: fc1bcc560de618549ac1f6a8f8f09e16, type: 3}
+    - {fileID: 21300000, guid: 24f002402d7a6a044970311223095d86, type: 3}
+    - {fileID: 21300000, guid: ad6e44c825f77124db7be6672359f4e5, type: 3}
+  crate: {fileID: 21300000, guid: 70a7f6abe8d04fd4b9062c0e57ab1d1c, type: 3}
+  spikes: {fileID: 21300000, guid: 4b282689caa006f4d8ad0d21494ada26, type: 3}
+  exitClosed: {fileID: 21300000, guid: 3b5b019bbe7ced94b843deba0bd15d50, type: 3}
+  exitOpen: {fileID: 21300000, guid: 1a3c4bf2b8886264ea83de08c5d87d37, type: 3}
+  gravityBeam: {fileID: 21300000, guid: 4b8c29901de6fa746a10797c2d8ecbb4, type: 3}
+  gravityArrow: {fileID: 21300000, guid: 2de00aaac1b1e314e827f7cfa57a0ef4, type: 3}
+  inverterWarningRing: {fileID: 21300000, guid: 7798ed2aa7b48c14d99ad04ea3159b10, type: 3}
+  telekinesisTether: {fileID: 21300000, guid: 7b2343b6a11d1a0408651d043a299552, type: 3}
+  puffFrames:
+  - {fileID: 21300000, guid: 419cb390a017d164b9dab1937cd7d87f, type: 3}
+  - {fileID: 21300000, guid: 79ca5367b97767642913c35735a09b6b, type: 3}
+  - {fileID: 21300000, guid: 301a535b2201eab479291ca36c705eb4, type: 3}
+  - {fileID: 21300000, guid: 385f300541224d146a6b7b2c26372c05, type: 3}
+  panel9Slice: {fileID: 21300000, guid: 1db24609a61876847b4e2a4ef0afd5ee, type: 3}
+  healthFull: {fileID: 21300000, guid: 6902a9192a8ec4f44ac7d6901063331c, type: 3}
+  healthEmpty: {fileID: 21300000, guid: 683791ecad1e4db41977ac2c76a53ee2, type: 3}
+  fieldFull: {fileID: 21300000, guid: 6ad2a9ebba9b4e54b990150182be532b, type: 3}
+  fieldEmpty: {fileID: 21300000, guid: 1bfd55c9ae33c0a4b8783295c107d127, type: 3}
+  hudFont: {fileID: 12800000, guid: 1df5789cecf0d6546a36093f36269883, type: 3}

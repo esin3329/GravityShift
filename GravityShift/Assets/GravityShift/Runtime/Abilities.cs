@@ -25,7 +25,8 @@ namespace GravityShift
 
         public void Tick(GameState game, Controls input, float step)
         {
-            if (Grabbed == null) Mana = Mathf.Min(Tuning.MaxMana, Mana + 18 * step);
+            bool wasHolding = Grabbed != null;
+            if (!wasHolding) Mana = Mathf.Min(Tuning.MaxMana, Mana + 18 * step);
             if (input.Has(ActionButton.Primary))
             {
                 var target = game.PickBody(input.PrimaryPointer);
@@ -48,12 +49,19 @@ namespace GravityShift
                 {
                     Grabbed = target;
                     target.Held = true;
+                    if (input.SecondaryHeld) game.PlaySfx(SfxKind.Grab);
                 }
                 else if (target != null) game.Note(target.Position, target.Manipulable ? "정신력 부족" : "무효");
             }
             if (Grabbed != null)
             {
-                if (!Grabbed.Alive || !input.SecondaryHeld || Mana <= 0) Release();
+                if (!Grabbed.Alive || Mana <= 0) Release();
+                else if (!input.SecondaryHeld)
+                {
+                    Release();
+                    // Throw keeps the velocity set while the player was holding the body.
+                    if (wasHolding) game.PlaySfx(SfxKind.Throw);
+                }
                 else
                 {
                     Grabbed.Velocity = Vector2.ClampMagnitude((input.Pointer - Grabbed.Position) * 12, 1000 * Tuning.Pixel);
@@ -66,7 +74,11 @@ namespace GravityShift
             if (game.Player.Override.HasValue)
             {
                 // Only the psychic's permanent toggle can be cancelled with F.
-                if (float.IsPositiveInfinity(game.Player.OverrideTime)) game.Player.Override = null;
+                if (float.IsPositiveInfinity(game.Player.OverrideTime))
+                {
+                    game.Player.Override = null;
+                    game.PlaySfx(SfxKind.GravityFlip);
+                }
             }
             else if (Mana >= Tuning.FlipCost) Flip(game.Player, float.PositiveInfinity, game);
             else game.Note(game.Player.Position, "정신력 부족");
@@ -78,6 +90,7 @@ namespace GravityShift
             body.OverrideTime = duration;
             Mana -= Tuning.FlipCost;
             game.Burst(body.Position, Palette.Psychic, 12, 160);
+            game.PlaySfx(SfxKind.GravityFlip);
         }
     }
 
@@ -149,6 +162,7 @@ namespace GravityShift
                     if (Zones.Count > Tuning.MaxZones) Zones.RemoveAt(0);
                     cooldown = 0.25f;
                     game.Burst(bounds.Value.center, Palette.Engineer, 14, 200);
+                    game.PlaySfx(SfxKind.FieldPlace);
                 }
             }
 
@@ -158,6 +172,7 @@ namespace GravityShift
                 {
                     if (!Zones[i].Bounds.Contains(input.SecondaryPointer)) continue;
                     Zones.RemoveAt(i);
+                    game.PlaySfx(SfxKind.FieldRemove);
                     break;
                 }
             }
@@ -165,6 +180,7 @@ namespace GravityShift
             {
                 foreach (var zone in Zones) zone.Direction = zone.Direction.Turn(2);
                 game.AddShake(4);
+                game.PlaySfx(SfxKind.FieldReverseAll);
             }
         }
     }

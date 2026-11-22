@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7661d657f4d7ba84f9501a8bd6124ff2, type: 3}
+  m_Name: AudioAssets
+  m_EditorClassIdentifier: Assembly-CSharp::GravityShift.AudioAssets
+  researchWing: {fileID: 8300000, guid: 8717b2218e463b34689acf23e58e9882, type: 3}
+  magicTower: {fileID: 8300000, guid: a16ac16789ed4ea42b6447c7c86d1544, type: 3}
+  orbitalStation: {fileID: 8300000, guid: 795cd23bcdd1d16428ff4d51b0ff3178, type: 3}
+  clear: {fileID: 8300000, guid: 2fcbc7bfb2d820a4ab31dc439290ce9a, type: 3}
+  dash: {fileID: 8300000, guid: 794347088f7e3684481f34c948f30158, type: 3}
+  death: {fileID: 8300000, guid: 5507fbd37e33cc142a9d48a3e4e8c76d, type: 3}
+  exitOpen: {fileID: 8300000, guid: 9df283c1f1d4ecf45a02ed280263c1cb, type: 3}
+  fieldPlace: {fileID: 8300000, guid: 9f8b3a8f9069b98458bf35a2f3e0b9a2, type: 3}
+  fieldRemove: {fileID: 8300000, guid: 3e0da242859f884409028e2f854e10d2, type: 3}
+  fieldReverseAll: {fileID: 8300000, guid: 402deabf7473d0d4b845d37556f35dff, type: 3}
+  grab: {fileID: 8300000, guid: 31a3f4ff9a09f4e4d8c672b35a5a93f1, type: 3}
+  gravityFlip: {fileID: 8300000, guid: 1c0b0cc835f6a8b4c8f2deab08955135, type: 3}
+  impact: {fileID: 8300000, guid: 1445cee834639b04b9f1a984acd3c2d9, type: 3}
+  jump: {fileID: 8300000, guid: 38cdf900802ccde438c222960c3c43d9, type: 3}
+  land: {fileID: 8300000, guid: 35b7b1deff686bb44a9e62d739eb6619, type: 3}
+  rotationWarning: {fileID: 8300000, guid: bfef58245deb50f45ab610fbba658abe, type: 3}
+  swing: {fileID: 8300000, guid: 130eccee5b01e1840a192d191a2cb0fb, type: 3}
+  throwClip: {fileID: 8300000, guid: d469331ac81c39f42abd5325d60c902f, type: 3}

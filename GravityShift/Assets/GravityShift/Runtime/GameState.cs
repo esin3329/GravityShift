@@ -7,9 +7,14 @@ namespace GravityShift
 {
     internal sealed class GameState
     {
+        // Match the HUD's rotation warning window.
+        private const float RotationWarningTime = 1.5f;
+        private const float ImpactCueInterval = 0.16f;
+
         private List<RoomDefinition> run;
         private int entryHealth;
         private float restartTimer;
+        private float nextImpactCueTime;
 
         public uint Seed { get; private set; }
         public float Time { get; private set; }
@@ -154,6 +159,7 @@ namespace GravityShift
 
             if (Room.RotateEvery > 0)
             {
+                float previousTimer = RotationTimer;
                 RotationTimer -= dt;
                 if (RotationTimer <= 0)
                 {
@@ -161,6 +167,8 @@ namespace GravityShift
                     RotationTimer += Room.RotateEvery;
                     AddShake(8);
                 }
+                else if (previousTimer >= RotationWarningTime && RotationTimer < RotationWarningTime)
+                    PlaySfx(SfxKind.RotationWarning);
             }
             if (UsesEngineer) Engineer.Tick(this, input, dt);
             else Psychic.Tick(this, input, dt);
@@ -186,12 +194,12 @@ namespace GravityShift
                 DoorOpen = true;
                 Note(Player.Position, "출구 개방!");
                 Burst(Player.Position, Palette.Accents[Room.Zone], 18, 200);
-                PlaySfx(SfxKind.Sting);
+                PlaySfx(SfxKind.ExitOpen);
             }
 
             if (!DoorOpen || !Player.Alive || !Map.ContainsTile(Player.Bounds, 'D', 2 * Tuning.Pixel)) return;
             if (RoomIndex + 1 < run.Count) LoadRoom(RoomIndex + 1, Player.Health + 1);
-            else EndRun("프로토타입 클리어!");
+            else EndRun("프로토타입 클리어!", SfxKind.Clear);
         }
 
         private void ResolveInteractions()
@@ -266,6 +274,12 @@ namespace GravityShift
             Burst(body.Position, Color.white, 6, 140);
             if (speed > 700 * Tuning.Pixel) AddShake(5);
             if (body.IsEnemy) Damage(body, 1 + Mathf.FloorToInt((speed - Tuning.WallImpact) / Tuning.ImpactStep));
+            // Enemy collisions already give damage feedback through Hit.
+            else if (Time >= nextImpactCueTime)
+            {
+                nextImpactCueTime = Time + ImpactCueInterval;
+                PlaySfx(SfxKind.Impact);
+            }
         }
 
         private void Damage(Body body, int amount)
@@ -283,7 +297,7 @@ namespace GravityShift
             if (body == Player)
             {
                 Burst(body.Position, Palette.Dash, 30, 300);
-                EndRun("런 실패");
+                EndRun("런 실패", SfxKind.Death);
             }
             else
             {
@@ -295,11 +309,11 @@ namespace GravityShift
             }
         }
 
-        private void EndRun(string title)
+        private void EndRun(string title, SfxKind cue)
         {
             restartTimer = 4f;
             ShowBanner(title, $"시드 {Seed} · {RoomIndex + 1}/{run.Count}방 · N 새 런 · R 이 방", restartTimer);
-            PlaySfx(SfxKind.Sting);
+            PlaySfx(cue);
         }
 
         private void ShowBanner(string title, string subtitle, float seconds)

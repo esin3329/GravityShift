@@ -17,6 +17,7 @@ namespace GravityShift
         private RoomView room;
         private HudView hud;
         private Controls controls;
+        private Sfx sfx;
         private float accumulator;
 
         private void Awake()
@@ -31,8 +32,10 @@ namespace GravityShift
             room = new RoomView(spriteMaterial);
             hud = new HudView(transform);
             state = new GameState(ReadSeed());
+            sfx = new Sfx(gameObject);
             state.BurstRequested += room.Burst;
             state.NoteRequested += hud.Note;
+            state.SfxRequested += sfx.Play;
         }
 
         private uint? ReadSeed()
@@ -48,17 +51,26 @@ namespace GravityShift
         {
             gameCamera.orthographicSize = Mathf.Max(RoomMap.Height * 0.5f, RoomMap.Width * 0.5f / gameCamera.aspect);
             controls.Poll(gameCamera);
+            if (state.Paused) controls.DiscardGameplayPresses();
+
             float frame = Mathf.Min(Time.deltaTime, 0.1f);
             accumulator += frame;
             while (accumulator >= Step)
             {
+                bool paused = state.Paused;
+                bool hitstop = state.Hitstop > 0f;
+                int roomVersion = state.RoomVersion;
                 state.Tick(controls, Step);
-                controls.ConsumePresses();
+                controls.ConsumePresses(ActionButton.Pause | ActionButton.Retry | ActionButton.NewRun);
+                if (paused || state.Paused || roomVersion != state.RoomVersion)
+                    controls.DiscardGameplayPresses();
+                else if (!hitstop)
+                    controls.ConsumePresses();
                 accumulator -= Step;
             }
             room.Draw(state, controls, frame);
             hud.Draw(state, frame);
-            Cursor.visible = !Application.isFocused || !controls.PointerInRoom;
+            Cursor.visible = state.Paused || !Application.isFocused || !controls.PointerInRoom;
         }
 
         private void OnDisable() => Cursor.visible = true;
@@ -69,7 +81,9 @@ namespace GravityShift
             {
                 state.BurstRequested -= room.Burst;
                 state.NoteRequested -= hud.Note;
+                state.SfxRequested -= sfx.Play;
             }
+            sfx?.Dispose();
             room?.Dispose();
             hud?.Dispose();
         }

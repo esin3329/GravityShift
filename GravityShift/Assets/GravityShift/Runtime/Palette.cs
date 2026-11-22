@@ -11,6 +11,8 @@ namespace GravityShift
         public static readonly Color Sparks = Rgb(0xffd25f);
         public static readonly Color Walker = Rgb(0xff6b5c);
         public static readonly Color Anchor = Rgb(0x6d5ce8);
+        public static readonly Color Inverter = Rgb(0xff8a3d);
+        public static readonly Color Ink = Rgb(0x070b10);
         public static readonly Color Ash = Rgb(0xeaf6ff);
 
         public static readonly Color[] Backgrounds = { Rgb(0x0e1822), Rgb(0x1a1026), Rgb(0x05070d) };

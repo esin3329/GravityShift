@@ -8,9 +8,11 @@ namespace GravityShift
         public float Mana { get; private set; } = Tuning.MaxMana;
         public Body Grabbed { get; private set; }
 
+        public void Disarm() => Release();
+
         public void Reset()
         {
-            Release();
+            Disarm();
             Mana = Tuning.MaxMana;
         }
 
@@ -26,7 +28,7 @@ namespace GravityShift
             if (Grabbed == null) Mana = Mathf.Min(Tuning.MaxMana, Mana + 18 * step);
             if (input.Has(ActionButton.Primary))
             {
-                var target = game.PickBody(input.Pointer);
+                var target = game.PickBody(input.PrimaryPointer);
                 if (target != null)
                 {
                     if (!target.Manipulable) game.Note(target.Position, "무효");
@@ -41,7 +43,7 @@ namespace GravityShift
 
             if (input.Has(ActionButton.Secondary) && Grabbed == null)
             {
-                var target = game.PickBody(input.Pointer);
+                var target = game.PickBody(input.SecondaryPointer);
                 if (target != null && target.Manipulable && Mana > 5)
                 {
                     Grabbed = target;
@@ -61,7 +63,11 @@ namespace GravityShift
             }
 
             if (!input.Has(ActionButton.Flip)) return;
-            if (game.Player.Override.HasValue) game.Player.Override = null;
+            if (game.Player.Override.HasValue)
+            {
+                // Only the psychic's permanent toggle can be cancelled with F.
+                if (float.IsPositiveInfinity(game.Player.OverrideTime)) game.Player.Override = null;
+            }
             else if (Mana >= Tuning.FlipCost) Flip(game.Player, float.PositiveInfinity, game);
             else game.Note(game.Player.Position, "정신력 부족");
         }
@@ -136,7 +142,7 @@ namespace GravityShift
 
             if (input.Has(ActionButton.Primary) && cooldown <= 0)
             {
-                Rect? bounds = Preview(game.Map, input.Pointer);
+                Rect? bounds = Preview(game.Map, input.PrimaryPointer);
                 if (bounds.HasValue)
                 {
                     Zones.Add(new GravityZone(bounds.Value, Direction));
@@ -150,7 +156,7 @@ namespace GravityShift
             {
                 for (int i = Zones.Count - 1; i >= 0; i--)
                 {
-                    if (!Zones[i].Bounds.Contains(input.Pointer)) continue;
+                    if (!Zones[i].Bounds.Contains(input.SecondaryPointer)) continue;
                     Zones.RemoveAt(i);
                     break;
                 }

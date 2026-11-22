@@ -34,9 +34,14 @@ namespace GravityShift
         {
             public Transform Root;
             public Transform Shape;
+            public SpriteRenderer Outline;
             public SpriteRenderer Body;
             public SpriteRenderer Visor;
             public SpriteRenderer Mark;
+            public SpriteRenderer Ring;
+            public SpriteRenderer StunMark;
+            public SpriteRenderer Pulse;
+            public SpriteRenderer[] Pupils;
             public SpriteRenderer[] Health;
         }
 
@@ -205,17 +210,35 @@ namespace GravityShift
             actor.Root.SetParent(stage, false);
             actor.Shape = new GameObject("Body").transform;
             actor.Shape.SetParent(actor.Root, false);
-            actor.Body = Create("Silhouette", actor.Shape, 12, body.Kind == BodyKind.Crate ? flat : rounded);
+            bool round = body.Kind != BodyKind.Crate;
+            actor.Outline = Create("Outline", actor.Shape, 11, round ? rounded : flat);
+            actor.Body = Create("Silhouette", actor.Shape, 12, round ? rounded : flat);
             actor.Mark = Create("Gravity Override", actor.Root, 17, triangle);
 
             if (body.Kind == BodyKind.Player)
+            {
                 actor.Visor = Block("Visor", actor.Shape, new Vector2(0.14f, 0.13f), new Vector2(0.30f, 0.16f), Palette.Psychic, 14);
+                for (int side = -1; side <= 1; side += 2)
+                    Block("Foot", actor.Shape, new Vector2(side * 0.14f, -0.40f), new Vector2(0.16f, 0.08f), Palette.Ink, 13);
+            }
             else if (body.IsEnemy)
             {
+                actor.Pupils = new SpriteRenderer[2];
+                int pupil = 0;
                 for (int side = -1; side <= 1; side += 2)
                 {
                     Block("Eye", actor.Shape, new Vector2(side * 0.16f, 0.13f), new Vector2(0.20f, 0.18f), Color.white, 14);
-                    Block("Pupil", actor.Shape, new Vector2(side * 0.16f + 0.025f, 0.13f), new Vector2(0.08f, 0.10f), Palette.Rgb(0x242035), 15);
+                    actor.Pupils[pupil++] = Block("Pupil", actor.Shape, new Vector2(side * 0.16f, 0.13f), new Vector2(0.08f, 0.10f), Palette.Ink, 15);
+                    Block("Foot", actor.Shape, new Vector2(side * 0.16f, -0.40f), new Vector2(0.16f, 0.08f), Palette.Ink, 13);
+                }
+                if (body.Kind == BodyKind.Anchor)
+                    actor.Ring = Create("Anchor Ring", actor.Shape, 16, ring);
+                actor.StunMark = Create("Stun", actor.Shape, 18, triangle);
+                actor.StunMark.enabled = false;
+                if (body.Kind == BodyKind.Inverter)
+                {
+                    actor.Pulse = Create("Inverter Pulse", actor.Root, 8, ring);
+                    actor.Pulse.enabled = false;
                 }
                 actor.Health = new SpriteRenderer[body.MaxHealth];
                 for (int i = 0; i < actor.Health.Length; i++)
@@ -236,11 +259,45 @@ namespace GravityShift
         {
             actor.Root.localPosition = body.Position;
             actor.Root.gameObject.SetActive(body.Alive && (!(body is PlayerBody p) || p.Blink <= 0 || (int)(game.Time * 20) % 2 == 0));
+            float squash = 1f - 0.15f * Mathf.Clamp01(body.Squash / 0.1f);
+            actor.Shape.localScale = new Vector3(1f, squash, 1f);
             actor.Shape.localRotation = Quaternion.Euler(0, 0, body.Kind == BodyKind.Crate ? 0 : body.Angle);
             Color color = body.Kind == BodyKind.Player ? Palette.Ash : body.Kind == BodyKind.Walker ? Palette.Walker :
-                body.Kind == BodyKind.Anchor ? Palette.Anchor : Palette.Rgb(0x9c6a35);
+                body.Kind == BodyKind.Anchor ? Palette.Anchor : body.Kind == BodyKind.Inverter ? Palette.Inverter : Palette.Rgb(0x9c6a35);
             if (body.Held) color = Color.Lerp(color, Palette.Psychic, 0.65f);
+            if (body is PlayerBody dashing && dashing.DashTime > 0f) color = Color.Lerp(Palette.Ash, Palette.Dash, 0.65f);
+            Pose(actor.Outline, Vector2.zero, body.Size + Vector2.one * 0.08f, Palette.Ink);
             Pose(actor.Body, Vector2.zero, body.Size, body.Flash > 0 ? Color.white : color);
+            if (actor.Pupils != null)
+            {
+                Vector2 toPlayer = game.Player.Position - body.Position;
+                Vector2 look = (Vector2)(Quaternion.Euler(0f, 0f, -body.Angle) * (Vector3)toPlayer);
+                look = Vector2.ClampMagnitude(look, 0.045f);
+                int side = -1;
+                foreach (SpriteRenderer pupil in actor.Pupils)
+                {
+                    pupil.transform.localPosition = new Vector2(side * 0.16f, 0.13f) + look;
+                    side += 2;
+                }
+            }
+            if (actor.Ring != null)
+                Pose(actor.Ring, Vector2.zero, Vector2.one * 0.62f, Color.Lerp(Palette.Anchor, Color.white, 0.55f));
+            if (actor.StunMark != null)
+            {
+                actor.StunMark.enabled = body.Stun > 0f;
+                if (actor.StunMark.enabled)
+                    Pose(actor.StunMark, new Vector2(Mathf.Sin(game.Time * 12f) * 0.08f, 0.58f), Vector2.one * 0.2f, Palette.Sparks);
+            }
+            if (actor.Pulse != null)
+            {
+                actor.Pulse.enabled = body.InverterTelegraph;
+                if (actor.Pulse.enabled)
+                {
+                    float charge = 1f - Mathf.Clamp01(body.Pulse / Tuning.InverterTelegraph);
+                    const float scale = Tuning.InverterRadius * 2f / 0.88f;
+                    Pose(actor.Pulse, Vector2.zero, Vector2.one * scale, Palette.Alpha(Palette.Inverter, 0.25f + 0.55f * charge));
+                }
+            }
             actor.Mark.enabled = body.Override.HasValue;
             if (actor.Mark.enabled)
                 Pose(actor.Mark, body.Gravity.Vector() * 0.65f, Vector2.one * 0.29f, Palette.Psychic, 180 - (int)body.Gravity * 90);
@@ -284,7 +341,11 @@ namespace GravityShift
             }
 
             slash.enabled = game.Player.AttackTime > 0 && game.Player.Alive;
-            if (slash.enabled) Pose(slash, game.Player.AttackBounds.center, game.Player.AttackBounds.size, Palette.Alpha(Color.white, 0.32f));
+            if (slash.enabled)
+            {
+                Color slashColor = game.UsesEngineer ? Palette.Engineer : Palette.Psychic;
+                Pose(slash, game.Player.AttackBounds.center, game.Player.AttackBounds.size, Palette.Alpha(slashColor, 0.4f));
+            }
             DrawAbilities(game, input);
             DrawParticles(delta);
         }

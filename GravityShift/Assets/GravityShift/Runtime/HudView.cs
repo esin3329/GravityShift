@@ -23,6 +23,7 @@ namespace GravityShift
         private readonly UnityEngine.UI.Text status;
         private readonly UnityEngine.UI.Text help;
         private readonly CanvasGroup banner;
+        private readonly GameObject pauseRoot;
         private readonly UnityEngine.UI.Text bannerTitle;
         private readonly UnityEngine.UI.Text bannerSubtitle;
         private readonly List<FloatingNote> notes = new List<FloatingNote>();
@@ -69,7 +70,7 @@ namespace GravityShift
             status = Label("Exit Status", panel, 855, 0, 92, 32, 13, TextAnchor.MiddleRight);
 
             var keys = Label("Common Controls", panel, 0, 512, 960, 16, 11, TextAnchor.MiddleCenter);
-            keys.text = "A/D 이동 (좌우 중력일 땐 W/S)  ·  Space 점프  ·  Shift 대시  ·  J 공격  ·  Tab 스타일 전환  ·  R 방 재시작  ·  N 새 런";
+            keys.text = "A/D 이동 (좌우 중력일 땐 W/S)  ·  Space 점프  ·  Shift 대시  ·  J 공격  ·  Tab 스타일  ·  Esc 일시정지  ·  R 재시작  ·  N 새 런";
             keys.color = Palette.Rgb(0xb8c6d7);
             help = Label("Style Controls", panel, 0, 526, 960, 16, 11, TextAnchor.MiddleCenter);
 
@@ -78,6 +79,16 @@ namespace GravityShift
             banner.blocksRaycasts = false;
             bannerTitle = Label("Title", band.transform, 0, 7, 960, 53, 31, TextAnchor.MiddleCenter);
             bannerSubtitle = Label("Subtitle", band.transform, 0, 56, 960, 26, 16, TextAnchor.MiddleCenter);
+
+            var dim = Image("Pause Scrim", panel, 0, 0, 960, 544, Palette.Alpha(Palette.Ink, 0.72f));
+            pauseRoot = dim.gameObject;
+            dim.gameObject.AddComponent<CanvasGroup>().blocksRaycasts = false;
+            var pauseTitle = Label("Pause Title", dim.transform, 0, 220, 960, 48, 31, TextAnchor.MiddleCenter);
+            pauseTitle.text = "일시정지";
+            var pauseHint = Label("Pause Hint", dim.transform, 0, 274, 960, 28, 16, TextAnchor.MiddleCenter);
+            pauseHint.text = "Esc 계속  ·  R 이 방  ·  N 새 런";
+            pauseHint.color = Palette.Dash;
+            pauseRoot.SetActive(false);
         }
 
         private static RectTransform Frame(string name, Transform parent, float x, float y, float width, float height)
@@ -124,7 +135,7 @@ namespace GravityShift
             for (int i = 0; i < zones.Length; i++)
             {
                 zones[i].enabled = engineer;
-                zones[i].color = i < zones.Length - game.Engineer.Zones.Count ? styleColor : Palette.Alpha(Color.white, 0.15f);
+                zones[i].color = i < game.Engineer.Zones.Count ? styleColor : Palette.Alpha(Color.white, 0.15f);
             }
             direction.text = engineer ? $"방향 {Arrows[(int)game.Engineer.Direction]}" : "";
             direction.color = styleColor;
@@ -139,7 +150,8 @@ namespace GravityShift
                 ? "좌클릭 중력 발판 설치  ·  휠/Q 방향 회전  ·  우클릭 발판 제거  ·  F 모든 발판 반전"
                 : "좌클릭 대상 중력 반전  ·  우클릭 홀드 잡기, 놓으면 던지기  ·  F 내 중력 반전";
 
-            banner.alpha = Mathf.Clamp01(game.BannerTime * 1.5f);
+            if (pauseRoot.activeSelf != game.Paused) pauseRoot.SetActive(game.Paused);
+            banner.alpha = game.Paused ? 0 : Mathf.Clamp01(game.BannerTime * 1.5f);
             bannerTitle.text = game.BannerTitle;
             bannerSubtitle.text = game.BannerSubtitle;
             bannerSubtitle.color = accent;

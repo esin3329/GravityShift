@@ -30,8 +30,12 @@ namespace GravityShift
         public string BannerSubtitle { get; private set; }
         public float BannerTime { get; private set; }
         public float Shake { get; private set; }
+        public float Hitstop { get; private set; }
+        public bool Paused { get; private set; }
         public event Action<Vector2, Color, int, float> BurstRequested;
         public event Action<Vector2, string> NoteRequested;
+        public event Action<SfxKind> SfxRequested;
+        private int spawnSerial;
 
         public GameState(uint? seed) => StartRun(seed);
 
@@ -48,6 +52,9 @@ namespace GravityShift
             RoomVersion++;
             entryHealth = Mathf.Min(health, Tuning.MaxHealth);
             restartTimer = 0;
+            Hitstop = 0;
+            Paused = false;
+            spawnSerial = 0;
             Shake = 0;
             Map = new RoomMap(Room.Map);
             RoomGravity = Room.Gravity;
@@ -58,15 +65,21 @@ namespace GravityShift
             Bodies.Clear();
             AddBodies(Map.Walkers, BodyKind.Walker);
             AddBodies(Map.Anchors, BodyKind.Anchor);
+            AddBodies(Map.Inverters, BodyKind.Inverter);
             AddBodies(Map.Crates, BodyKind.Crate);
-            EnemiesLeft = Map.Walkers.Count + Map.Anchors.Count;
+            EnemiesLeft = Map.Walkers.Count + Map.Anchors.Count + Map.Inverters.Count;
             DoorOpen = false;
             ShowBanner(Room.Title, Room.Subtitle, 2.6f);
         }
 
         private void AddBodies(IEnumerable<Vector2> positions, BodyKind kind)
         {
-            foreach (Vector2 pos in positions) Bodies.Add(new Body(kind, pos, RoomGravity));
+            foreach (Vector2 pos in positions)
+            {
+                int facing = kind == BodyKind.Walker || kind == BodyKind.Anchor || kind == BodyKind.Inverter
+                    ? SeedRandom.FacingSign(Seed, RoomIndex, spawnSerial++) : 1;
+                Bodies.Add(new Body(kind, pos, RoomGravity, facing));
+            }
         }
 
         public GravityDirection GravityFor(Body body)
@@ -97,6 +110,28 @@ namespace GravityShift
 
         public void Tick(Controls input, float dt)
         {
+            if (input.Has(ActionButton.Pause))
+            {
+                Paused = !Paused;
+                PlaySfx(SfxKind.Click);
+            }
+            if (input.Has(ActionButton.NewRun))
+            {
+                StartRun();
+                return;
+            }
+            if (input.Has(ActionButton.Retry))
+            {
+                LoadRoom(RoomIndex, entryHealth);
+                return;
+            }
+            if (Paused) return;
+            if (Hitstop > 0f)
+            {
+                Hitstop = Mathf.Max(0f, Hitstop - dt);
+                return;
+            }
+
             Time += dt;
             Shake = Mathf.Max(0, Shake - dt * 40);
             BannerTime = Mathf.Max(0, BannerTime - dt);
@@ -110,20 +145,11 @@ namespace GravityShift
             if (input.Has(ActionButton.Style))
             {
                 if (UsesEngineer) Engineer.Reset();
-                else Psychic.Reset();
+                else Psychic.Disarm();
                 UsesEngineer = !UsesEngineer;
                 Player.Override = null;
                 Note(Player.Position, UsesEngineer ? "엔지니어" : "사이킥");
-            }
-            if (input.Has(ActionButton.Retry))
-            {
-                LoadRoom(RoomIndex, entryHealth);
-                return;
-            }
-            if (input.Has(ActionButton.NewRun))
-            {
-                StartRun();
-                return;
+                PlaySfx(SfxKind.Click);
             }
 
             if (Room.RotateEvery > 0)
@@ -146,20 +172,26 @@ namespace GravityShift
 
             EnemiesLeft = 0;
             foreach (var body in Bodies)
+            {
                 if (body.IsEnemy) EnemiesLeft++;
+                if (body.Kind != BodyKind.Inverter) continue;
+                // Apply pulses after every body's timers and movement have advanced.
+                body.Pulse -= dt;
+                if (body.Pulse > 0f || body.Stun > 0f || body.Held) continue;
+                body.Pulse = Tuning.InverterPeriod;
+                InvertPulse(body);
+            }
             if (!DoorOpen && EnemiesLeft == 0)
             {
                 DoorOpen = true;
                 Note(Player.Position, "출구 개방!");
+                Burst(Player.Position, Palette.Accents[Room.Zone], 18, 200);
+                PlaySfx(SfxKind.Sting);
             }
 
             if (!DoorOpen || !Player.Alive || !Map.ContainsTile(Player.Bounds, 'D', 2 * Tuning.Pixel)) return;
             if (RoomIndex + 1 < run.Count) LoadRoom(RoomIndex + 1, Player.Health + 1);
-            else
-            {
-                restartTimer = 4;
-                ShowBanner("프로토타입 클리어!", "처음부터 다시 시작합니다", restartTimer);
-            }
+            else EndRun("프로토타입 클리어!");
         }
 
         private void ResolveInteractions()
@@ -241,18 +273,33 @@ namespace GravityShift
             if (!body.Alive) return;
             body.Health -= amount;
             body.Flash = 0.15f;
-            if (body.Alive) return;
+            RequestHitstop();
+            if (body.Alive)
+            {
+                if (body == Player) PlaySfx(SfxKind.Hurt);
+                else if (body.IsEnemy) PlaySfx(SfxKind.Hit);
+                return;
+            }
             if (body == Player)
             {
                 Burst(body.Position, Palette.Dash, 30, 300);
-                restartTimer = 2.4f;
-                ShowBanner("런 실패", "처음부터 다시 시작합니다", restartTimer);
+                EndRun("런 실패");
             }
             else
             {
-                Burst(body.Position, Palette.Walker, 20, 260);
+                Color death = body.Kind == BodyKind.Anchor ? Palette.Anchor :
+                    body.Kind == BodyKind.Inverter ? Palette.Inverter : Palette.Walker;
+                Burst(body.Position, death, 20, 260);
+                PlaySfx(SfxKind.Hit);
                 AddShake(4);
             }
+        }
+
+        private void EndRun(string title)
+        {
+            restartTimer = 4f;
+            ShowBanner(title, $"시드 {Seed} · {RoomIndex + 1}/{run.Count}방 · N 새 런 · R 이 방", restartTimer);
+            PlaySfx(SfxKind.Sting);
         }
 
         private void ShowBanner(string title, string subtitle, float seconds)
@@ -262,8 +309,26 @@ namespace GravityShift
             BannerTime = seconds;
         }
 
+        private void InvertPulse(Body source)
+        {
+            void Flip(Body body)
+            {
+                if (!body.Alive || !body.Manipulable || body == source) return;
+                if ((body.Position - source.Position).sqrMagnitude > Tuning.InverterRadius * Tuning.InverterRadius) return;
+                body.Override = GravityFor(body).Turn(2);
+                body.OverrideTime = Tuning.InverterDuration;
+            }
+
+            Flip(Player);
+            foreach (Body body in Bodies) Flip(body);
+            Burst(source.Position, Palette.Inverter, 16, 180);
+            PlaySfx(SfxKind.Pulse);
+        }
+
         public void AddShake(float amount) => Shake = Mathf.Max(Shake, amount);
         public void Burst(Vector2 point, Color color, int count, float speed) => BurstRequested?.Invoke(point, color, count, speed * Tuning.Pixel);
         public void Note(Vector2 point, string message) => NoteRequested?.Invoke(point, message);
+        public void PlaySfx(SfxKind kind) => SfxRequested?.Invoke(kind);
+        private void RequestHitstop() { if (Hitstop <= 0f) Hitstop = 0.06f; }
     }
 }

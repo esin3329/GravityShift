@@ -9,13 +9,15 @@ namespace GravityShift
     internal enum ActionButton
     {
         Jump = 1, Dash = 2, Attack = 4, Style = 8, Retry = 16, NewRun = 32,
-        Flip = 64, Rotate = 128, Primary = 256, Secondary = 512
+        Flip = 64, Rotate = 128, Primary = 256, Secondary = 512, Pause = 1024
     }
 
     internal struct Controls
     {
         public Vector2 Move;
         public Vector2 Pointer;
+        public Vector2 PrimaryPointer;
+        public Vector2 SecondaryPointer;
         public bool PointerInRoom;
         public bool JumpHeld;
         public bool SecondaryHeld;
@@ -45,17 +47,31 @@ namespace GravityShift
                 CaptureKey(ActionButton.NewRun, keys.nKey);
                 CaptureKey(ActionButton.Flip, keys.fKey);
                 CaptureKey(ActionButton.Rotate, keys.qKey);
+                CaptureKey(ActionButton.Pause, keys.escapeKey);
             }
 
             var mouse = Mouse.current;
-            if (mouse == null) return;
+            if (mouse == null)
+            {
+                PointerInRoom = false;
+                SecondaryHeld = false;
+                return;
+            }
             Vector2 screen = mouse.position.ReadValue();
             Pointer = camera.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -camera.transform.position.z));
             PointerInRoom = Pointer.x >= 0 && Pointer.x < RoomMap.Width && Pointer.y <= 0 && Pointer.y > -RoomMap.Height;
             SecondaryHeld = mouse.rightButton.isPressed;
             if (!PointerInRoom) return;
-            if (mouse.leftButton.wasPressedThisFrame) Presses |= ActionButton.Primary;
-            if (mouse.rightButton.wasPressedThisFrame) Presses |= ActionButton.Secondary;
+            if (mouse.leftButton.wasPressedThisFrame)
+            {
+                Presses |= ActionButton.Primary;
+                PrimaryPointer = Pointer;
+            }
+            if (mouse.rightButton.wasPressedThisFrame)
+            {
+                Presses |= ActionButton.Secondary;
+                SecondaryPointer = Pointer;
+            }
             Wheel += Math.Sign(mouse.scroll.y.ReadValue());
         }
 
@@ -75,5 +91,13 @@ namespace GravityShift
             Presses = 0;
             Wheel = 0;
         }
+        public void ConsumePresses(ActionButton buttons) => Presses &= ~buttons;
+
+        public void DiscardGameplayPresses()
+        {
+            Presses &= ActionButton.Pause | ActionButton.Retry | ActionButton.NewRun;
+            Wheel = 0;
+        }
+
     }
 }

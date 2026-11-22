@@ -30,6 +30,12 @@ namespace GravityShift
                 (items[i], items[j]) = (items[j], items[i]);
             }
         }
+
+        public static int FacingSign(uint seed, int roomIndex, int bodyIndex)
+        {
+            uint mixed = seed ^ ((uint)(roomIndex + 1) * 747796405u + (uint)bodyIndex * 2891336453u);
+            return new SeedRandom(mixed).Chance(0.5) ? 1 : -1;
+        }
     }
 
     internal sealed class RoomDefinition
@@ -54,6 +60,13 @@ namespace GravityShift
 
     internal static class RoomGenerator
     {
+        private static readonly string[][] Chunks =
+        {
+            new[] { "......", ".....#", "...##.", ".##..." },
+            new[] { "......", ".####.", "......", "......" },
+            new[] { "......", "......", "#^^..#", "......" },
+        };
+
         private const int Width = RoomMap.Width;
         private const int Height = RoomMap.Height;
         private const int Floor = Height - 2;
@@ -87,8 +100,8 @@ namespace GravityShift
             for (int attempt = 0; attempt < 60; attempt++)
             {
                 char[][] grid = Layout(ref rng, difficulty, zone.RotateEvery > 0);
-                if (!Reachable(grid)) continue;
-                if (!Populate(ref rng, grid, difficulty, crates)) continue;
+                if (!Reachable(grid, out bool[,] reachable)) continue;
+                if (!Populate(ref rng, grid, difficulty, crates, reachable)) continue;
                 grid[Floor][Spawn] = 'P';
                 if (mirror)
                     foreach (char[] row in grid) Array.Reverse(row);
@@ -165,8 +178,31 @@ namespace GravityShift
                 }
             }
 
+            StampChunk(ref rng, grid);
             grid[Floor][Door] = grid[Floor - 1][Door] = 'D';
             return grid;
+        }
+
+        private static void StampChunk(ref SeedRandom rng, char[][] grid)
+        {
+            if (!rng.Chance(0.65)) return;
+            string[] chunk = Chunks[rng.Int(0, Chunks.Length - 1)];
+            const int height = 4;
+            const int width = 6;
+            int y0 = rng.Int(3, Floor - height);
+            int x0 = rng.Int(3, Width - 3 - width);
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    int col = x0 + x;
+                    int row = y0 + y;
+                    if (col == Spawn || col == Door || grid[row][col] != '.') return;
+                }
+            }
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    grid[y0 + y][x0 + x] = chunk[y][x];
         }
 
         private static bool Solid(char[][] grid, int x, int y) =>
@@ -191,10 +227,12 @@ namespace GravityShift
         }
 
         // The generator checks the original walking, dropping and jumping approximation.
-        private static bool Reachable(char[][] grid)
+        private static bool Reachable(char[][] grid, out bool[,] reachable)
         {
             var queue = new Queue<(int x, int y)>();
             var seen = new bool[Height, Width];
+            reachable = seen;
+
 
             void Visit(int x, int y)
             {
@@ -207,7 +245,6 @@ namespace GravityShift
             while (queue.Count > 0)
             {
                 var (x, y) = queue.Dequeue();
-                if (x == Door && y == Floor) return true;
 
                 for (int step = -1; step <= 1; step += 2)
                 {
@@ -243,15 +280,15 @@ namespace GravityShift
                 }
             }
 
-            return false;
+            return seen[Floor, Door];
         }
 
-        private static bool Populate(ref SeedRandom rng, char[][] grid, int difficulty, int crates)
+        private static bool Populate(ref SeedRandom rng, char[][] grid, int difficulty, int crates, bool[,] reachable)
         {
             var candidates = new List<(int x, int y)>();
             for (int y = 2; y <= Floor; y++)
                 for (int x = Spawn + 8; x < Width - 1; x++)
-                    if (grid[y][x] == '.' && Standable(grid, x, y) &&
+                    if (grid[y][x] == '.' && Standable(grid, x, y) && reachable[y, x] &&
                         (Math.Abs(x - Door) > 1 || y < Floor - 1)) candidates.Add((x, y));
             rng.Shuffle(candidates);
 
@@ -272,6 +309,8 @@ namespace GravityShift
             int anchors = difficulty >= 5 ? 2 : difficulty >= 2 ? 1 : 0;
             for (int i = 0; i < anchors; i++)
                 if (!Place('A', Floor - 2, 3)) return false;
+            int inverters = difficulty >= 5 ? 2 : difficulty >= 2 ? 1 : 0;
+            for (int i = 0; i < inverters; i++) Place('I', 0, 4);
             for (int i = 0; i < 2 + difficulty / 2; i++)
                 if (!Place('E', 0, 3)) return false;
             for (int i = 0; i < crates; i++) Place('B', 0, 2);

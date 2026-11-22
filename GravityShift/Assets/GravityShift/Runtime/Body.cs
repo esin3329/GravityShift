@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace GravityShift
 {
-    internal enum BodyKind { Player, Walker, Anchor, Crate }
+    internal enum BodyKind { Player, Walker, Anchor, Inverter, Crate }
 
     internal class Body
     {
@@ -20,10 +20,12 @@ namespace GravityShift
         public float OverrideTime;
         public float Angle;
         public int Facing;
+        public float Squash;
+        public float Pulse = 2f;
         public GravityDirection Gravity;
         public GravityDirection? Override;
 
-        public Body(BodyKind kind, Vector2 position, GravityDirection gravity)
+        public Body(BodyKind kind, Vector2 position, GravityDirection gravity, int facing = 1)
         {
             Kind = kind;
             Position = position;
@@ -31,14 +33,15 @@ namespace GravityShift
             Angle = (int)gravity * -90;
             Size = (kind == BodyKind.Player ? new Vector2(22, 24) :
                 kind == BodyKind.Crate ? new Vector2(28, 28) : new Vector2(24, 24)) * Tuning.Pixel;
-            MaxHealth = kind == BodyKind.Player ? Tuning.MaxHealth : kind == BodyKind.Anchor ? 5 : kind == BodyKind.Walker ? 3 : 1;
+            MaxHealth = kind == BodyKind.Player ? Tuning.MaxHealth : kind == BodyKind.Anchor ? 5 : kind == BodyKind.Crate ? 1 : 3;
             Health = MaxHealth;
-            Facing = kind == BodyKind.Player || Random.value > 0.5f ? 1 : -1;
+            Facing = facing;
             Stun = IsEnemy ? 2 : 0;
         }
 
         public bool Alive => Health > 0;
-        public bool IsEnemy => Kind == BodyKind.Walker || Kind == BodyKind.Anchor;
+        public bool IsEnemy => Kind == BodyKind.Walker || Kind == BodyKind.Anchor || Kind == BodyKind.Inverter;
+        public bool InverterTelegraph => Kind == BodyKind.Inverter && Pulse <= Tuning.InverterTelegraph;
         public bool Manipulable => Kind != BodyKind.Anchor;
         public bool VerticalGravity => Gravity.Vector().y != 0;
         public Rect Bounds => new Rect(Position - Size * 0.5f, Size);
@@ -48,6 +51,7 @@ namespace GravityShift
             Flash = Mathf.Max(0, Flash - step);
             Stun = Mathf.Max(0, Stun - step);
             CollisionCooldown = Mathf.Max(0, CollisionCooldown - step);
+            Squash = Mathf.Max(0, Squash - step);
             if (!Override.HasValue) return;
             OverrideTime -= step;
             if (OverrideTime <= 0) Override = null;
@@ -64,9 +68,11 @@ namespace GravityShift
                 if (fallSpeed > Tuning.MaxFall) Velocity -= down * (fallSpeed - Tuning.MaxFall);
             }
 
+            bool wasGrounded = Grounded;
             Grounded = false;
             Slide(0, game, step);
             Slide(1, game, step);
+            if (!wasGrounded && Grounded) Squash = 0.1f;
             Angle = Mathf.LerpAngle(Angle, (int)Gravity * -90, step * 14);
         }
 
@@ -121,9 +127,10 @@ namespace GravityShift
                     if (!blocked || !chase)
                     {
                         if (blocked) Facing = -Facing;
-                        desired = Facing * 75 * Tuning.Pixel;
+                        float speed = Kind == BodyKind.Inverter ? Tuning.InverterSpeed : 75 * Tuning.Pixel;
+                        desired = Facing * speed;
                     }
-                    acceleration = 900;
+                    acceleration = Kind == BodyKind.Inverter ? 700 : 900;
                 }
                 Velocity[axis] = Mathf.MoveTowards(Velocity[axis], desired, acceleration * Tuning.Pixel * step);
             }

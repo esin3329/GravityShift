@@ -23,6 +23,7 @@ namespace GravityShift
         public Vector2 PlayerStart { get; private set; } = new Vector2(2, -2);
         public readonly List<Vector2> Walkers = new List<Vector2>();
         public readonly List<Vector2> Anchors = new List<Vector2>();
+        public readonly List<Vector2> Inverters = new List<Vector2>();
         public readonly List<Vector2> Crates = new List<Vector2>();
 
         public RoomMap(string[] rows)
@@ -39,6 +40,7 @@ namespace GravityShift
                         case 'P': PlayerStart = center; break;
                         case 'E': Walkers.Add(center); break;
                         case 'A': Anchors.Add(center); break;
+                        case 'I': Inverters.Add(center); break;
                         case 'B': Crates.Add(center); break;
                         default: tiles[row, col] = tile; continue;
                     }
@@ -94,5 +96,11 @@ namespace GravityShift
         public const float FlipDuration = 5;
         public const int MaxZones = 3;
         public const int BeamWidth = 3;
+
+        public const float InverterPeriod = 2.4f;
+        public const float InverterTelegraph = 0.45f;
+        public const float InverterDuration = 1.1f;
+        public const float InverterRadius = 4.5f;
+        public const float InverterSpeed = 55 * Pixel;
     }
 }
